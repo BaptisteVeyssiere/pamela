@@ -56,6 +56,8 @@ install: $(NAME)
 	@echo "Linking complete !"
 	@if [ ! -f ${HOME}/.encrypt ]; then \
 		sudo dd if=/dev/urandom bs=1M count=10 of=$(LUKSDIR)/.${USER}; \
+		sudo chmod 600 $(LUKSDIR)/.${USER}; \
+		sudo chown -R ${USER} $(LUKSDIR)/.${USER}; \
 		touch .tmp; \
 		echo 'YES' | sudo cryptsetup luksFormat $(LUKSDIR)/.${USER} .tmp; \
 		echo '' | sudo cryptsetup luksOpen $(LUKSDIR)/.${USER} .${USER}; \
@@ -72,7 +74,7 @@ uninstall: clean
 	@sudo $(RMRULE)
 	@sudo $(RM) $(SECURITYDIR)/$(NAME)
 	@sudo $(RM) $(SECURITYDIR)
-	@if [ ! -f ${HOME}/secure_data-rw ]; then \
+	@if [ -f ${HOME}/secure_data-rw ]; then \
 		sudo umount ${HOME}/secure_data-rw || /bin/true; \
 	fi
 	@sudo $(RM) $(LUKSDIR)
