@@ -22,6 +22,8 @@ OBJDIR	= obj
 
 SECURITYDIR	= /lib/security
 
+LUKSDIR	= /home/luks
+
 OBJ	= $(SRC:$(SRCDIR)/%.c=$(OBJDIR)/%.o)
 
 CFLAGS	= -Iinclude -fPIC -W -Wextra -Wall -Werror
@@ -50,7 +52,18 @@ check:
 install: $(NAME)
 	@sudo $(MKDIR) $(SECURITYDIR)
 	@sudo $(LD) -o $(SECURITYDIR)/$(NAME) $(OBJ)
+	@sudo $(MKDIR) $(LUKSDIR)
 	@echo "Linking complete !"
+	@if [ ! -f ${HOME}/.encrypt ]; then \
+		sudo dd if=/dev/urandom bs=1M count=10 of=$(LUKSDIR)/.${USER}; \
+		touch .tmp; \
+		echo 'YES' | sudo cryptsetup luksFormat $(LUKSDIR)/.${USER} .tmp; \
+		echo '' | sudo cryptsetup luksOpen $(LUKSDIR)/.${USER} .${USER}; \
+		$(RM) .tmp; \
+		sudo mkfs.ext3 /dev/mapper/.${USER}; \
+		sudo cryptsetup luksClose .${USER}; \
+		echo "Container created !"; \
+	fi
 	@sudo $(RMRULE)
 	@sudo sh -c $(RULE)
 	@echo "Installation complete !"
@@ -59,6 +72,10 @@ uninstall: clean
 	@sudo $(RMRULE)
 	@sudo $(RM) $(SECURITYDIR)/$(NAME)
 	@sudo $(RM) $(SECURITYDIR)
+	@if [ ! -f ${HOME}/secure_data-rw ]; then \
+		sudo umount ${HOME}/secure_data-rw || /bin/true; \
+	fi
+	@sudo $(RM) $(LUKSDIR)
 	@echo "Uninstallion complete !"
 
 clean:
