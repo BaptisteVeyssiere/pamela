@@ -21,10 +21,31 @@ OBJ	= $(SRC:$(SRCDIR)/%.c=$(OBJDIR)/%.o)
 CFLAGS	= -Iinclude -fPIC -W -Wextra -Wall -Werror
 
 $(NAME) : $(OBJ)
-	@$(LD) -o $(SECURITYDIR)/$(NAME) $(OBJ)
-	@echo "Linking complete !"
 
 $(OBJ) : $(OBJDIR)/%.o : $(SRCDIR)/%.c
 	@$(MKDIR) $(OBJDIR)
 	@$(CC) $(CFLAGS) -c $< -o $@
 	@echo "Compiled "$<" successfully !"
+
+test:
+	@echo "Tests complete !"
+
+install: $(NAME)
+	@sudo $(MKDIR) $(SECURITYDIR)
+	@sudo $(LD) -o $(SECURITYDIR)/$(NAME) $(OBJ)
+	@echo "Linking complete !"
+	@echo "Installation complete !"
+
+uninstall: clean
+	@sudo $(RM) $(SECURITYDIR)/$(NAME)
+	@sudo $(RM) $(SECURITYDIR)
+	@echo "Uninstallion complete !"
+
+clean:
+	@$(RM) $(OBJ)
+	@$(RM) $(OBJDIR)
+	@echo "Cleanup complete !"
+
+re: uninstall install
+
+.PHONY: clean install uninstall re
