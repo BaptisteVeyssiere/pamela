@@ -41,8 +41,6 @@ int	pam_sm_chauthtok(pam_handle_t *pamh, UNUSED int flags,
     return (PAM_AUTHTOK_RECOVERY_ERR);
   if (old == NULL || new == NULL)
     return (PAM_SUCCESS);
-  printf("Password : %s\n", new);
-  printf("Old password : %s\n", old);
   if (change_pass(old, new) == 1)
     return (PAM_AUTHTOK_ERR);
   return (PAM_SUCCESS);

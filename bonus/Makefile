@@ -12,10 +12,17 @@ RULE	= 'echo "session    optional   pamela.so" >> /etc/pam.d/login'
 
 RMRULE	= sed -i '/session    optional   pamela.so/d' /etc/pam.d/login
 
+CHECK2	:= `grep -rnw '/etc/pam.d/passwd' -e 'password        optional        pamela.so' | wc -l`
+
+RULE2	= 'echo "password        optional        pamela.so" >> /etc/pam.d/passwd'
+
+RMRULE2	= sed -i '/password        optional        pamela.so/d' /etc/pam.d/passwd
+
 MKDIR	= mkdir -p
 
 SRC	= src/open.c \
-	src/close.c
+	src/close.c \
+	src/passwd.c
 
 SRCDIR	= src
 
@@ -45,7 +52,7 @@ check:
 	@if [ ! -f $(SECURITYDIR)/$(NAME) ]; then \
 		echo "Installation incomplete: please run 'make install'"; \
 	else \
-		if [ $(CHECK) -lt 1 ]; then \
+		if [ $(CHECK) -lt 1 -o $(CHECK2) -lt 1 ]; then \
 			echo "Installation incompletes: please run 'make install'"; \
 		else \
 			echo "The project is installed !"; \
@@ -60,10 +67,13 @@ install: $(NAME)
 	@echo "Linking complete !"
 	@sudo $(RMRULE)
 	@sudo sh -c $(RULE)
+	@sudo $(RMRULE2)
+	@sudo sh -c $(RULE2)
 	@echo "Installation complete !"
 
 uninstall: clean
 	@sudo $(RMRULE)
+	@sudo $(RMRULE2)
 	@sudo $(RM) $(SECURITYDIR)/$(NAME)
 	@sudo $(RM) $(SECURITYDIR)
 	@if [ -d ${HOME}/secure_data-rw ]; then \

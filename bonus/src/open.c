@@ -24,12 +24,12 @@ static int	secure_mount(char *source, char *target, struct passwd *passwd)
     }
   return (0);
 }
-  
+
 static int	mount_container(char *user, struct passwd *passwd)
 {
   char			*source;
   char			*target;
-
+  
   if (concat(&source, "/dev/mapper/", user) == 1)
     return (1);
   if (concat(&target, passwd->pw_dir, "/secure_data-rw") == 1)
@@ -57,7 +57,7 @@ static int	cryptsetup(char *user, char *container, int new,
     .data_device = NULL
   };
   char				*password;
-
+  
   if (get_item(pamh, PAM_AUTHTOK, (const void **)&password) == 1)
     return (1);
   if (crypt_init(&cd, container) < 0)
@@ -124,23 +124,20 @@ static int	check_or_create(char *container, char *user,
 }
 
 int	pam_sm_open_session(pam_handle_t *pamh, UNUSED int flags,
-				    UNUSED int argc, UNUSED const char **argv)
+			    UNUSED int argc, UNUSED const char **argv)
 {
   char			*user;
   char			*container;
   struct passwd		*passwd;
-
-  printf("In\n");
+  
   if (get_userinfo(&user, &passwd) == 1 ||
       concat(&container, "/home/luks/", user) == 1)
     return (PAM_SESSION_ERR);
-  printf("%s\n", user);
   if (check_or_create(container, user, pamh, passwd) == 1 ||
       mount_container(user, passwd) == 1)
     {
       free(container);
       return (PAM_SESSION_ERR);
     }
-  printf("2\n");
   return (PAM_SUCCESS);
 }
