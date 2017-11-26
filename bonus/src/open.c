@@ -17,7 +17,7 @@ static int	secure_mount(char *source, char *target, struct passwd *passwd)
       perror("chown failed");
       return (1);
     }
-  if (chmod(target, S_IRUSR | S_IWUSR) == -1)
+  if (chmod(target, S_IRUSR | S_IWUSR | S_IXUSR) == -1)
     {
       perror("chmod failed");
       return (1);
@@ -123,21 +123,24 @@ static int	check_or_create(char *container, char *user,
   return (0);
 }
 
-PAM_EXTERN int	pam_sm_open_session(pam_handle_t *pamh, UNUSED int flags,
+int	pam_sm_open_session(pam_handle_t *pamh, UNUSED int flags,
 				    UNUSED int argc, UNUSED const char **argv)
 {
   char			*user;
   char			*container;
   struct passwd		*passwd;
 
+  printf("In\n");
   if (get_userinfo(&user, &passwd) == 1 ||
       concat(&container, "/home/luks/", user) == 1)
     return (PAM_SESSION_ERR);
+  printf("%s\n", user);
   if (check_or_create(container, user, pamh, passwd) == 1 ||
       mount_container(user, passwd) == 1)
     {
       free(container);
       return (PAM_SESSION_ERR);
     }
+  printf("2\n");
   return (PAM_SUCCESS);
 }

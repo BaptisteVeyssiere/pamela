@@ -71,7 +71,7 @@ static int	secure_mount(char *source, char *target, struct passwd *passwd)
       perror("chown failed");
       return (1);
     }
-  if (chmod(target, S_IRUSR | S_IWUSR) == -1)
+  if (chmod(target, S_IRUSR | S_IWUSR | S_IXUSR) == -1)
     {
       perror("chmod failed");
       return (1);

@@ -77,8 +77,10 @@ uninstall: clean
 	@sudo $(RMRULE)
 	@sudo $(RM) $(SECURITYDIR)/$(NAME)
 	@sudo $(RM) $(SECURITYDIR)
-	@if [ -f ${HOME}/secure_data-rw ]; then \
+	@if [ -d ${HOME}/secure_data-rw ]; then \
 		sudo umount ${HOME}/secure_data-rw || /bin/true; \
+		$(RM) ${HOME}/secure_data-rw; \
+		sudo cryptsetup luksClose ${USER}; \
 	fi
 	@sudo $(RM) $(LUKSDIR)
 	@echo "Uninstallion complete !"

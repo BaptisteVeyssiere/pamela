@@ -45,7 +45,9 @@ int	pam_sm_close_session(UNUSED pam_handle_t *pamh, UNUSED int flags,
 {
   char		*user;
   struct passwd	*passwd;
-  
+
+  printf("test\n");
+  sleep(3);
   if (get_userinfo(&user, &passwd) == 1 ||
       umount_container(passwd) == 1 ||
       cryptunsetup(user) == 1)

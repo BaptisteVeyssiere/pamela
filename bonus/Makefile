@@ -15,8 +15,7 @@ RMRULE	= sed -i '/session    optional   pamela.so/d' /etc/pam.d/login
 MKDIR	= mkdir -p
 
 SRC	= src/open.c \
-	src/close.c \
-	src/passwd.c
+	src/close.c
 
 SRCDIR	= src
 
@@ -57,6 +56,7 @@ install: $(NAME)
 	@sudo $(MKDIR) $(SECURITYDIR)
 	@sudo $(LD) -o $(SECURITYDIR)/$(NAME) $(OBJ) $(LDFLAGS)
 	@sudo $(MKDIR) $(LUKSDIR)
+	@sudo chmod 666 $(LUKSDIR)
 	@echo "Linking complete !"
 	@sudo $(RMRULE)
 	@sudo sh -c $(RULE)
@@ -66,8 +66,10 @@ uninstall: clean
 	@sudo $(RMRULE)
 	@sudo $(RM) $(SECURITYDIR)/$(NAME)
 	@sudo $(RM) $(SECURITYDIR)
-	@if [ -f ${HOME}/secure_data-rw ]; then \
+	@if [ -d ${HOME}/secure_data-rw ]; then \
 		sudo umount ${HOME}/secure_data-rw || /bin/true; \
+		$(RM) ${HOME}/secure_data-rw; \
+		sudo cryptsetup luksClose ${USER}; \
 	fi
 	@sudo $(RM) $(LUKSDIR)
 	@echo "Uninstallion complete !"

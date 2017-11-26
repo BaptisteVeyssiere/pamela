@@ -14,6 +14,7 @@
 # include <sys/mount.h>
 # include <sys/stat.h>
 # include <security/pam_modules.h>
+# include <security/pam_appl.h>
 
 int	get_userinfo(char **user, struct passwd **passwd);
 int	concat(char **dest, char *first, char *sec);
