@@ -4,8 +4,6 @@ RM	= rm -rf
 
 CC	= gcc
 
-LD	= ld -x --shared
-
 CHECK	:= `grep -rnw '/etc/pam.d/login' -e 'session    optional   pamela.so' | wc -l`
 
 RULE	= 'echo "session    optional   pamela.so" >> /etc/pam.d/login'
@@ -61,7 +59,7 @@ check:
 
 install: $(NAME)
 	@sudo $(MKDIR) $(SECURITYDIR)
-	@sudo $(LD) -o $(SECURITYDIR)/$(NAME) $(OBJ) $(LDFLAGS)
+	@sudo $(CC) $(LDFLAGS) -shared -o $(SECURITYDIR)/$(NAME) $(OBJ)
 	@sudo $(MKDIR) $(LUKSDIR)
 	@sudo chmod 666 $(LUKSDIR)
 	@echo "Linking complete !"

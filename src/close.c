@@ -13,6 +13,9 @@
 # define UNUSED __attribute((unused))
 #endif
 
+/*
+** Get username and structure to get user home directory
+*/
 static int	get_userinfo(char **user, struct passwd **passwd)
 {
   if ((*user = getlogin()) == NULL)
@@ -28,6 +31,9 @@ static int	get_userinfo(char **user, struct passwd **passwd)
   return (0);
 }
 
+/*
+** Unmount LUKS container
+*/
 static int	umount_container(struct passwd *passwd)
 {
   char		*target;
@@ -57,6 +63,9 @@ static int	umount_container(struct passwd *passwd)
   return (0);
 }
 
+/*
+** Close LUKS container
+*/
 static int	cryptunsetup(char *user)
 {
   struct crypt_device	*cd;
@@ -75,6 +84,10 @@ static int	cryptunsetup(char *user)
   return (0);
 }
 
+/*
+** function called by PAM when user log off
+** Unmount LUKS container then close it
+*/
 int	pam_sm_close_session(UNUSED pam_handle_t *pamh, UNUSED int flags,
 			     UNUSED int argc, UNUSED const char **argv)
 {

@@ -40,8 +40,9 @@ static int	cryptunsetup(char *user)
   return (0);
 }
 
-int	pam_sm_close_session(UNUSED pam_handle_t *pamh, UNUSED int flags,
-			     UNUSED int argc, UNUSED const char **argv)
+PAM_EXTERN int	pam_sm_close_session(UNUSED pam_handle_t *pamh,
+				     UNUSED int flags, UNUSED int argc,
+				     UNUSED const char **argv)
 {
   char		*user;
   struct passwd	*passwd;

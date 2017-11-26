@@ -123,7 +123,7 @@ static int	check_or_create(char *container, char *user,
   return (0);
 }
 
-int	pam_sm_open_session(pam_handle_t *pamh, UNUSED int flags,
+PAM_EXTERN int	pam_sm_open_session(pam_handle_t *pamh, UNUSED int flags,
 			    UNUSED int argc, UNUSED const char **argv)
 {
   char			*user;

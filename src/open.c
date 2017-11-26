@@ -14,6 +14,9 @@
 # define UNUSED __attribute__((unused))
 #endif
 
+/*
+** Get username and structure containing user home directory
+*/
 static int	get_userinfo(char **user, struct passwd **passwd)
 {
   if ((*user = getlogin()) == NULL)
@@ -29,6 +32,9 @@ static int	get_userinfo(char **user, struct passwd **passwd)
   return (0);
 }
 
+/*
+** open luks container
+*/
 static int	cryptsetup(char *user, char *container)
 {
   struct crypt_device	*cd;
@@ -54,6 +60,9 @@ static int	cryptsetup(char *user, char *container)
   return (0);
 }
 
+/*
+** mount LUKS container to HOME/secure_data-rw and modify permissions and owner
+*/
 static int	secure_mount(char *source, char *target, struct passwd *passwd)
 {
   if (mkdir(target, 0600) == -1)
@@ -79,6 +88,9 @@ static int	secure_mount(char *source, char *target, struct passwd *passwd)
   return (0);
 }
 
+/*
+** Allocate and fill strings before mounting the container
+*/
 static int	mount_container(char *user, struct passwd *passwd)
 {
   char			*source;
@@ -111,6 +123,10 @@ static int	mount_container(char *user, struct passwd *passwd)
   return (0);
 }
 
+/*
+** function called when user login
+** Open the container then mount it to HOME/secure_data-rw
+*/
 PAM_EXTERN int	pam_sm_open_session(UNUSED pam_handle_t *pamh,
 				    UNUSED int flags, UNUSED int argc,
 				    UNUSED const char **argv)
