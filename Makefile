@@ -58,15 +58,15 @@ install: $(NAME)
 	@sudo $(MKDIR) $(LUKSDIR)
 	@echo "Linking complete !"
 	@if [ ! -f ${HOME}/.encrypt ]; then \
-		sudo dd if=/dev/urandom bs=1M count=10 of=$(LUKSDIR)/.${USER}; \
-		sudo chmod 600 $(LUKSDIR)/.${USER}; \
-		sudo chown -R ${USER} $(LUKSDIR)/.${USER}; \
+		sudo dd if=/dev/urandom bs=1M count=10 of=$(LUKSDIR)/${USER}; \
+		sudo chmod 600 $(LUKSDIR)/${USER}; \
+		sudo chown -R ${USER} $(LUKSDIR)/${USER}; \
 		touch .tmp; \
-		echo 'YES' | sudo cryptsetup luksFormat $(LUKSDIR)/.${USER} .tmp; \
-		echo '' | sudo cryptsetup luksOpen $(LUKSDIR)/.${USER} .${USER}; \
+		echo 'YES' | sudo cryptsetup luksFormat $(LUKSDIR)/${USER} .tmp; \
+		echo '' | sudo cryptsetup luksOpen $(LUKSDIR)/${USER} ${USER}; \
 		$(RM) .tmp; \
-		sudo mkfs.ext3 /dev/mapper/.${USER}; \
-		sudo cryptsetup luksClose .${USER}; \
+		sudo mkfs.ext3 /dev/mapper/${USER}; \
+		sudo cryptsetup luksClose ${USER}; \
 		echo "Container created !"; \
 	fi
 	@sudo $(RMRULE)

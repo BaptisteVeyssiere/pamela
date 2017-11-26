@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <sys/mount.h>
 #include <sys/stat.h>
+#include <security/pam_modules.h>
 
 static int	get_userinfo(char **user, struct passwd **passwd)
 {
@@ -105,7 +106,7 @@ static int	mount_container(char *user, struct passwd *passwd)
   return (0);
 }
 
-int	main(int argc, char ** argv)
+int	pam_sm_open_session(pam_handle_t *pamh, int flags, int argc, char ** argv)
 {
   char			*user;
   struct passwd		*passwd;
@@ -113,6 +114,6 @@ int	main(int argc, char ** argv)
   if (get_userinfo(&user, &passwd) == 1 ||
       cryptsetup(user) == 1 ||
       mount_container(user, passwd) == 1)
-    return (1);
-  return (0);
+    return (PAM_SESSION_ERR);
+  return (PAM_SUCCESS);
 }
