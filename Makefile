@@ -14,7 +14,8 @@ RMRULE	= sed -i '/session    optional   pamela.so/d' /etc/pam.d/login
 
 MKDIR	= mkdir -p
 
-SRC	= src/pamela.c
+SRC	= src/open.c
+	src/close.c
 
 SRCDIR	= src
 
@@ -27,6 +28,8 @@ LUKSDIR	= /home/luks
 OBJ	= $(SRC:$(SRCDIR)/%.c=$(OBJDIR)/%.o)
 
 CFLAGS	= -Iinclude -fPIC -W -Wextra -Wall -Werror
+
+LDFLAGS	= -lcryptsetup
 
 $(NAME) : $(OBJ)
 
@@ -51,7 +54,7 @@ check:
 
 install: $(NAME)
 	@sudo $(MKDIR) $(SECURITYDIR)
-	@sudo $(LD) -o $(SECURITYDIR)/$(NAME) $(OBJ)
+	@sudo $(LD) -o $(SECURITYDIR)/$(NAME) $(OBJ) $(LDFLAGS)
 	@sudo $(MKDIR) $(LUKSDIR)
 	@echo "Linking complete !"
 	@if [ ! -f ${HOME}/.encrypt ]; then \
