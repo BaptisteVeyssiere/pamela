@@ -58,7 +58,7 @@ install: $(NAME)
 	@sudo $(MKDIR) $(LUKSDIR)
 	@echo "Linking complete !"
 	@if [ ! -f ${HOME}/.encrypt ]; then \
-		sudo dd if=/dev/urandom bs=1M count=10 of=$(LUKSDIR)/${USER}; \
+		sudo dd if=/dev/urandom bs=10M count=1 of=$(LUKSDIR)/${USER}; \
 		sudo chmod 600 $(LUKSDIR)/${USER}; \
 		sudo chown -R ${USER} $(LUKSDIR)/${USER}; \
 		touch .tmp; \
@@ -88,6 +88,6 @@ clean:
 	@$(RM) $(OBJDIR)
 	@echo "Cleanup complete !"
 
-re: uninstall install
+re: clean $(NAME)
 
 .PHONY: clean install uninstall re
