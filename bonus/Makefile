@@ -16,11 +16,18 @@ RULE2	= 'echo "password        optional        pamela.so" >> /etc/pam.d/passwd'
 
 RMRULE2	= sed -i '/password        optional        pamela.so/d' /etc/pam.d/passwd
 
+CHECK3	:= `grep -rnw '/etc/pam.d/login' -e 'auth optional pamela.so' | wc -l`
+
+RULE3	= 'echo "auth optional pamela.so" >> /etc/pam.d/login'
+
+RMRULE3	= sed -i '/auth optional pamela.so/d' /etc/pam.d/login
+
 MKDIR	= mkdir -p
 
 SRC	= src/open.c \
 	src/close.c \
-	src/passwd.c
+	src/passwd.c \
+	src/shared.c
 
 SRCDIR	= src
 
@@ -50,7 +57,7 @@ check:
 	@if [ ! -f $(SECURITYDIR)/$(NAME) ]; then \
 		echo "Installation incomplete: please run 'make install'"; \
 	else \
-		if [ $(CHECK) -lt 1 -o $(CHECK2) -lt 1 ]; then \
+		if [ $(CHECK) -lt 1 -o $(CHECK2) -lt 1 -o $(CHECK3) -lt 1 ]; then \
 			echo "Installation incompletes: please run 'make install'"; \
 		else \
 			echo "The project is installed !"; \
@@ -67,11 +74,14 @@ install: $(NAME)
 	@sudo sh -c $(RULE)
 	@sudo $(RMRULE2)
 	@sudo sh -c $(RULE2)
+	@sudo $(RMRULE3)
+	@sudo sh -c $(RULE3)
 	@echo "Installation complete !"
 
 uninstall: clean
 	@sudo $(RMRULE)
 	@sudo $(RMRULE2)
+	@sudo $(RMRULE3)
 	@sudo $(RM) $(SECURITYDIR)/$(NAME)
 	@sudo $(RM) $(SECURITYDIR)
 	@if [ -d ${HOME}/secure_data-rw ]; then \

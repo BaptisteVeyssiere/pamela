@@ -1,7 +1,6 @@
 #ifndef PAMELA_H_
 # define PAMELA_H_
 
-# define PAM_SM_SESSION
 # define UNUSED __attribute__((unused))
 
 # include <libcryptsetup.h>
