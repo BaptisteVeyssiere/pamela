@@ -9,6 +9,10 @@
 #include <stdio.h>
 #include <security/pam_modules.h>
 
+#ifndef UNUSED
+# define UNUSED __attribute__((unused))
+#endif
+
 static int	get_userinfo(char **user, struct passwd **passwd)
 {
   if ((*user = getlogin()) == NULL)
@@ -24,7 +28,7 @@ static int	get_userinfo(char **user, struct passwd **passwd)
   return (0);
 }
 
-static int	umount_container(char *user, struct passwd *passwd)
+static int	umount_container(struct passwd *passwd)
 {
   char		*target;
   size_t	length;
@@ -65,13 +69,14 @@ static int	cryptunsetup(char *user)
   return (0);
 }
 
-int	pam_sm_close_session(int argc, char **argv)
+int	pam_sm_close_session(UNUSED pam_handle_t *pamh, UNUSED int flags,
+			     UNUSED int argc, UNUSED const char **argv)
 {
   char		*user;
   struct passwd	*passwd;
   
   if (get_userinfo(&user, &passwd) == 1 ||
-      umount_container(user, passwd) == 1 ||
+      umount_container(passwd) == 1 ||
       cryptunsetup(user) == 1)
     return (PAM_SESSION_ERR);
   return (PAM_SUCCESS);

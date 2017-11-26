@@ -14,7 +14,7 @@ RMRULE	= sed -i '/session    optional   pamela.so/d' /etc/pam.d/login
 
 MKDIR	= mkdir -p
 
-SRC	= src/open.c
+SRC	= src/open.c \
 	src/close.c
 
 SRCDIR	= src
