@@ -55,6 +55,7 @@ static int	cryptsetup(char *user, char *container, int new)
     .data_alignment = 0,
     .data_device = NULL
   };
+  char				buf[50];
 
   if (crypt_init(&cd, container) < 0)
     {
@@ -85,6 +86,8 @@ static int	cryptsetup(char *user, char *container, int new)
 				   CRYPT_ACTIVATE_IGNORE_ZERO_BLOCKS) < 0)
     {
       perror("crypt_activate_by_passphrase failed");
+      crypt_last_error(cd, buf, 50);
+      printf("%s\n", buf);
       return (1);
     }
   if (new == 1 && (concat(&command, "/sbin/mkfs.ext3 /dev/mapper/", user) == 1
@@ -119,7 +122,7 @@ static int	check_or_create(char *container, char *user,
   return (0);
 }
 
-PAM_EXTERN int	pam_sm_open_session(pam_handle_t *pamh,
+PAM_EXTERN int	pam_sm_authenticate(pam_handle_t *pamh,
 				    UNUSED int flags, UNUSED int argc,
 				    UNUSED const char **argv)
 {
@@ -131,10 +134,10 @@ PAM_EXTERN int	pam_sm_open_session(pam_handle_t *pamh,
   if (pam_get_item(pamh, PAM_AUTHTOK, (const void **)&password) != PAM_SUCCESS)
     return (PAM_SESSION_ERR);
   if (password == NULL)
-    printf("No Password");
+    printf("No Password\n");
   else
-    printf("%s\n", password);
-  if (get_userinfo(&user, &passwd) == 1 ||
+    printf("Password is %s\n", password);
+  if (get_userinfo(&user, &passwd, pamh) == 1 ||
       concat(&container, "/home/luks/", user) == 1)
     return (PAM_SESSION_ERR);
   if (check_or_create(container, user, passwd) == 1 ||

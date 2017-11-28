@@ -1,15 +1,15 @@
 #include "pamela.h"
 
-int	get_userinfo(char **user, struct passwd **passwd)
+int	get_userinfo(char **user, struct passwd **passwd, pam_handle_t *pamh)
 {
-  if ((*user = getlogin()) == NULL)
+  if (pam_get_user(pamh, (const char **)user, NULL) != PAM_SUCCESS)
     {
-      perror("getlogin() failed");
+      perror("pam_get_user");
       return (1);
     }
   if ((*passwd = getpwnam(*user)) == NULL || (*passwd)->pw_dir == NULL)
     {
-      perror("getpwnam failed");
+      perror("getpwnam");
       return (1);
     }
   return (0);
@@ -22,7 +22,7 @@ int	concat(char **dest, char *first, char *sec)
   length = strlen(first) + strlen(sec) + 1;
   if ((*dest = malloc(length)) == NULL)
     {
-      perror("malloc failed");
+      perror("malloc");
       return (1);
     }
   bzero(*dest, length);

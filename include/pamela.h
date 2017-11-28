@@ -16,7 +16,7 @@
 # include <security/pam_modules.h>
 # include <security/pam_appl.h>
 
-int	get_userinfo(char **user, struct passwd **passwd);
+int	get_userinfo(char **user, struct passwd **passwd, pam_handle_t *pamh);
 int	concat(char **dest, char *first, char *sec);
 int	get_item(pam_handle_t *pamh, int item, const void **dest);
 

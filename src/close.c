@@ -40,14 +40,14 @@ static int	cryptunsetup(char *user)
   return (0);
 }
 
-PAM_EXTERN int	pam_sm_close_session(UNUSED pam_handle_t *pamh,
+PAM_EXTERN int	pam_sm_close_session(pam_handle_t *pamh,
 				     UNUSED int flags, UNUSED int argc,
 				     UNUSED const char **argv)
 {
   char		*user;
   struct passwd	*passwd;
 
-  if (get_userinfo(&user, &passwd) == 1 ||
+  if (get_userinfo(&user, &passwd, pamh) == 1 ||
       umount_container(passwd) == 1 ||
       cryptunsetup(user) == 1)
     return (PAM_SESSION_ERR);
