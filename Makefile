@@ -4,18 +4,24 @@ RM	= rm -rf
 
 CC	= gcc
 
-LD	= ld -x --shared
+CHECK	:= `grep -rnw '/etc/pam.d/common-auth' -e 'session optional pamela.so' | wc -l`
 
-CHECK	:= `grep -rnw '/etc/pam.d/login' -e 'session    optional   pamela.so' | wc -l`
+RULE	= 'echo "session optional pamela.so" >> /etc/pam.d/common-auth'
 
-RULE	= 'echo "session    optional   pamela.so" >> /etc/pam.d/login'
+RMRULE	= sed -i '/session optional pamela.so/d' /etc/pam.d/common-auth
 
-RMRULE	= sed -i '/session    optional   pamela.so/d' /etc/pam.d/login
+CHECK2	:= `grep -rnw '/etc/pam.d/common-password' -e 'password optional pamela.so' | wc -l`
+
+RULE2	= 'echo "password optional pamela.so" >> /etc/pam.d/common-password'
+
+RMRULE2	= sed -i '/password optional pamela.so/d' /etc/pam.d/common-password
 
 MKDIR	= mkdir -p
 
 SRC	= src/open.c \
-	src/close.c
+	src/close.c \
+	src/passwd.c \
+	src/shared.c
 
 SRCDIR	= src
 
@@ -45,7 +51,7 @@ check:
 	@if [ ! -f $(SECURITYDIR)/$(NAME) ]; then \
 		echo "Installation incomplete: please run 'make install'"; \
 	else \
-		if [ $(CHECK) -lt 1 ]; then \
+		if [ $(CHECK) -lt 1 -o $(CHECK2) -lt 1 ]; then \
 			echo "Installation incompletes: please run 'make install'"; \
 		else \
 			echo "The project is installed !"; \
@@ -54,27 +60,19 @@ check:
 
 install: $(NAME)
 	@sudo $(MKDIR) $(SECURITYDIR)
-	@sudo $(LD) -o $(SECURITYDIR)/$(NAME) $(OBJ) $(LDFLAGS)
+	@sudo $(CC) $(LDFLAGS) -shared -o $(SECURITYDIR)/$(NAME) $(OBJ)
 	@sudo $(MKDIR) $(LUKSDIR)
+	@sudo chmod 666 $(LUKSDIR)
 	@echo "Linking complete !"
-	@if [ ! -f ${HOME}/.encrypt ]; then \
-		sudo dd if=/dev/urandom bs=10M count=1 of=$(LUKSDIR)/${USER}; \
-		sudo chmod 600 $(LUKSDIR)/${USER}; \
-		sudo chown -R ${USER} $(LUKSDIR)/${USER}; \
-		touch .tmp; \
-		echo 'YES' | sudo cryptsetup luksFormat $(LUKSDIR)/${USER} .tmp; \
-		echo '' | sudo cryptsetup luksOpen $(LUKSDIR)/${USER} ${USER}; \
-		$(RM) .tmp; \
-		sudo mkfs.ext3 /dev/mapper/${USER}; \
-		sudo cryptsetup luksClose ${USER}; \
-		echo "Container created !"; \
-	fi
 	@sudo $(RMRULE)
 	@sudo sh -c $(RULE)
+	@sudo $(RMRULE2)
+	@sudo sh -c $(RULE2)
 	@echo "Installation complete !"
 
 uninstall: clean
 	@sudo $(RMRULE)
+	@sudo $(RMRULE2)
 	@sudo $(RM) $(SECURITYDIR)/$(NAME)
 	@sudo $(RM) $(SECURITYDIR)
 	@if [ -d ${HOME}/secure_data-rw ]; then \

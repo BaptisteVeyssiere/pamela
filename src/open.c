@@ -1,68 +1,5 @@
-#include <libcryptsetup.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <sys/types.h>
-#include <pwd.h>
-#include <strings.h>
-#include <string.h>
-#include <stdlib.h>
-#include <sys/mount.h>
-#include <sys/stat.h>
-#include <security/pam_modules.h>
+#include "pamela.h"
 
-#ifndef UNUSED
-# define UNUSED __attribute__((unused))
-#endif
-
-/*
-** Get username and structure containing user home directory
-*/
-static int	get_userinfo(char **user, struct passwd **passwd)
-{
-  if ((*user = getlogin()) == NULL)
-    {
-      perror("getlogin() failed");
-      return (1);
-    }
-  if ((*passwd = getpwnam(*user)) == NULL || (*passwd)->pw_dir == NULL)
-    {
-      perror("getpwnam failed");
-      return (1);
-    }
-  return (0);
-}
-
-/*
-** open luks container
-*/
-static int	cryptsetup(char *user, char *container)
-{
-  struct crypt_device	*cd;
-
-  if (crypt_init(&cd, container) < 0)
-    {
-      perror("crypt_init failed");
-      return (1);
-    }
-  if (crypt_load(cd, CRYPT_LUKS1, NULL) < 0)
-    {
-      perror("crypt_load failed");
-      crypt_free(cd);
-      return (1);
-    }
-  if (crypt_activate_by_passphrase(cd, user, CRYPT_ANY_SLOT, "", 0,
-				   CRYPT_ACTIVATE_IGNORE_ZERO_BLOCKS) < 0)
-    {
-      perror("crypt_activate_by_passphrase failed");
-      return (1);
-    }
-  crypt_free(cd);
-  return (0);
-}
-
-/*
-** mount LUKS container to HOME/secure_data-rw and modify permissions and owner
-*/
 static int	secure_mount(char *source, char *target, struct passwd *passwd)
 {
   if (mkdir(target, 0600) == -1)
@@ -88,32 +25,18 @@ static int	secure_mount(char *source, char *target, struct passwd *passwd)
   return (0);
 }
 
-/*
-** Allocate and fill strings before mounting the container
-*/
 static int	mount_container(char *user, struct passwd *passwd)
 {
   char			*source;
   char			*target;
-  size_t		length;
-
-  length = strlen("/dev/mapper/") + strlen(user) + 1;
-  if ((source = malloc(length)) == NULL)
-    {
-      perror("malloc failed");
-      return (1);
-    }
-  bzero(source, length);
-  strcat(strcat(source, "/dev/mapper/"), user);
-  length = strlen(passwd->pw_dir) + strlen("/secure_data-rw") + 1;
-  if ((target = malloc(length)) == NULL)
+  
+  if (concat(&source, "/dev/mapper/", user) == 1)
+    return (1);
+  if (concat(&target, passwd->pw_dir, "/secure_data-rw") == 1)
     {
       free(source);
-      perror("malloc failed");
       return (1);
     }
-  bzero(target, length);
-  strcat(strcat(target, passwd->pw_dir), "/secure_data-rw");
   if (secure_mount(source, target, passwd) == 1)
     {
       free(source);
@@ -123,30 +46,98 @@ static int	mount_container(char *user, struct passwd *passwd)
   return (0);
 }
 
-/*
-** function called when user login
-** Open the container then mount it to HOME/secure_data-rw
-*/
-PAM_EXTERN int	pam_sm_open_session(UNUSED pam_handle_t *pamh,
+static int	cryptsetup(char *user, char *container, int new)
+{
+  struct crypt_device		*cd;
+  char				*command;
+  struct crypt_params_luks1	params = {
+    .hash = "sha1",
+    .data_alignment = 0,
+    .data_device = NULL
+  };
+
+  if (crypt_init(&cd, container) < 0)
+    {
+      perror("crypt_init failed");
+      return (1);
+    }
+  if (new == 1 && crypt_format(cd, CRYPT_LUKS1, "aes", "xts-plain64", NULL, NULL, 32, &params) < 0)
+    {
+      crypt_free(cd);
+      perror("crypt_format failed");
+      return (1);
+    }
+  if (new == 1 && crypt_keyslot_add_by_volume_key(cd, CRYPT_ANY_SLOT, NULL, 0,
+				     "", 0) < 0)
+    {
+      crypt_free(cd);
+      perror("crypt_keyslot_add_by_volume_key failed");
+      return (1);
+    }
+  if (crypt_load(cd, CRYPT_LUKS1, NULL) < 0)
+    {
+      perror("crypt_load failed");
+      crypt_free(cd);
+      return (1);
+    }
+  if (crypt_activate_by_passphrase(cd, user, CRYPT_ANY_SLOT, "",
+				   0,
+				   CRYPT_ACTIVATE_IGNORE_ZERO_BLOCKS) < 0)
+    {
+      perror("crypt_activate_by_passphrase failed");
+      return (1);
+    }
+  if (new == 1 && (concat(&command, "/sbin/mkfs.ext3 /dev/mapper/", user) == 1
+		   || system(command) < 0))
+    return (1);
+  crypt_free(cd);
+  return (0);
+}
+
+static int	check_or_create(char *container, char *user,
+				struct passwd *passwd)
+{
+  char	*command;
+  
+  if (access(container, F_OK) != -1)
+    return (cryptsetup(user, container, 0));
+  if (concat(&command, "dd if=/dev/urandom bs=10M count=1 of=", container) == 1
+      || system(command) < 0)
+    return (1);
+  if (chown(container, passwd->pw_uid, passwd->pw_gid) == -1)
+    {
+      perror("chown failed");
+      return (1);
+    }
+  if (chmod(container, S_IRUSR | S_IWUSR) == -1)
+    {
+      perror("chmod failed");
+      return (1);
+    }
+  if (cryptsetup(user, container, 1) == 1)
+    return (1);
+  return (0);
+}
+
+PAM_EXTERN int	pam_sm_open_session(pam_handle_t *pamh,
 				    UNUSED int flags, UNUSED int argc,
 				    UNUSED const char **argv)
 {
   char			*user;
   char			*container;
   struct passwd		*passwd;
-  size_t		length;
+  char			*password;
 
-  if (get_userinfo(&user, &passwd) == 1)
+  if (pam_get_item(pamh, PAM_AUTHTOK, (const void **)&password) != PAM_SUCCESS)
     return (PAM_SESSION_ERR);
-  length = strlen("/home/luks/") + strlen(user) + 1;
-  if ((container = malloc(length)) == NULL)
-    {
-      perror("malloc failed");
-      return (PAM_SESSION_ERR);
-    }
-  bzero(container, length);
-  strcat(strcat(container, "/home/luks/"), user);
-  if (cryptsetup(user, container) == 1 ||
+  if (password == NULL)
+    printf("No Password");
+  else
+    printf("%s\n", password);
+  if (get_userinfo(&user, &passwd) == 1 ||
+      concat(&container, "/home/luks/", user) == 1)
+    return (PAM_SESSION_ERR);
+  if (check_or_create(container, user, passwd) == 1 ||
       mount_container(user, passwd) == 1)
     {
       free(container);

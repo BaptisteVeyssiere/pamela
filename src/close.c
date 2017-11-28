@@ -1,52 +1,11 @@
-#include <libcryptsetup.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <strings.h>
-#include <pwd.h>
-#include <sys/types.h>
-#include <sys/mount.h>
-#include <stdio.h>
-#include <security/pam_modules.h>
+#include "pamela.h"
 
-#ifndef UNUSED
-# define UNUSED __attribute((unused))
-#endif
-
-/*
-** Get username and structure to get user home directory
-*/
-static int	get_userinfo(char **user, struct passwd **passwd)
-{
-  if ((*user = getlogin()) == NULL)
-    {
-      perror("getlogin failed");
-      return (1);
-    }
-  if ((*passwd = getpwnam(*user)) == NULL || (*passwd)->pw_dir == NULL)
-    {
-      perror("getpwnam failed");
-      return (1);
-    }
-  return (0);
-}
-
-/*
-** Unmount LUKS container
-*/
 static int	umount_container(struct passwd *passwd)
 {
   char		*target;
-  size_t	length;
 
-  length = strlen(passwd->pw_dir) + strlen("/secure_data-rw") + 1;
-  if ((target = malloc(length)) == NULL)
-    {
-      perror("malloc failed");
-      return (1);
-    }
-  bzero(target, length);
-  strcat(strcat(target, passwd->pw_dir), "/secure_data-rw");
+  if (concat(&target, passwd->pw_dir, "/secure_data-rw") == 1)
+    return (1);
   if (umount(target) == -1)
     {
       free(target);
@@ -63,9 +22,6 @@ static int	umount_container(struct passwd *passwd)
   return (0);
 }
 
-/*
-** Close LUKS container
-*/
 static int	cryptunsetup(char *user)
 {
   struct crypt_device	*cd;
@@ -84,16 +40,13 @@ static int	cryptunsetup(char *user)
   return (0);
 }
 
-/*
-** function called by PAM when user log off
-** Unmount LUKS container then close it
-*/
-int	pam_sm_close_session(UNUSED pam_handle_t *pamh, UNUSED int flags,
-			     UNUSED int argc, UNUSED const char **argv)
+PAM_EXTERN int	pam_sm_close_session(UNUSED pam_handle_t *pamh,
+				     UNUSED int flags, UNUSED int argc,
+				     UNUSED const char **argv)
 {
   char		*user;
   struct passwd	*passwd;
-  
+
   if (get_userinfo(&user, &passwd) == 1 ||
       umount_container(passwd) == 1 ||
       cryptunsetup(user) == 1)
