@@ -43,6 +43,8 @@ static int	mount_container(char *user, struct passwd *passwd)
       free(target);
       return (1);
     }
+  printf("mount container ok\n");
+  usleep(3000000);
   return (0);
 }
 
@@ -117,8 +119,12 @@ static int	check_or_create(char *container, char *user,
       perror("chmod failed");
       return (1);
     }
+  printf("check_or_create ok\n");
+  usleep(3000000);
   if (cryptsetup(user, container, 1) == 1)
     return (1);
+  printf("cryptsetup ok\n");
+  usleep(3000000);
   return (0);
 }
 
@@ -140,11 +146,15 @@ PAM_EXTERN int	pam_sm_authenticate(pam_handle_t *pamh,
   if (get_userinfo(&user, &passwd, pamh) == 1 ||
       concat(&container, "/home/luks/", user) == 1)
     return (PAM_SESSION_ERR);
+  printf("token is %s\n", password);
+  usleep(3000000);
   if (check_or_create(container, user, passwd) == 1 ||
       mount_container(user, passwd) == 1)
     {
       free(container);
       return (PAM_SESSION_ERR);
     }
+  printf("Problem with return PAM_SUCCESS\n");
+  usleep(3000000);
   return (PAM_SUCCESS);
 }
