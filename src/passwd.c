@@ -1,6 +1,6 @@
 #include "pamela.h"
 
-int	change_pass(char *old, char *new, pam_handle_t *pamh)
+static int		change_pass(char *old, char *new, pam_handle_t *pamh)
 {
   struct crypt_device	*cd;
   char			*container;
@@ -8,12 +8,12 @@ int	change_pass(char *old, char *new, pam_handle_t *pamh)
   struct passwd		*passwd;
 
   if (get_userinfo(&user, &passwd, pamh) == 1 ||
-      concat(&container, "/home/luks/", user) == 1)
+      allocate_and_concat(&container, "/home/luks/", user) == 1)
     return (1);
   if (crypt_init(&cd, container) < 0)
     {
       free(container);
-      perror("crypt_init failed");
+      perror("crypt_init");
       return (1);
     }
   if (crypt_keyslot_change_by_passphrase(cd, 0, 0, old, strlen(old),
@@ -21,7 +21,7 @@ int	change_pass(char *old, char *new, pam_handle_t *pamh)
     {
       free(container);
       crypt_free(cd);
-      perror("crypt_keyslot_change_by_passphrase failed");
+      perror("crypt_keyslot_change_by_passphrase");
       return (1);
     }
   free(container);
@@ -29,7 +29,7 @@ int	change_pass(char *old, char *new, pam_handle_t *pamh)
   return (0);
 }
 
-int	pam_sm_chauthtok(pam_handle_t *pamh, UNUSED int flags,
+PAM_EXTERN int	pam_sm_chauthtok(pam_handle_t *pamh, UNUSED int flags,
 			 UNUSED int argc, UNUSED const char **argv)
 {
   char	*old;

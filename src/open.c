@@ -4,22 +4,22 @@ static int	secure_mount(char *source, char *target, struct passwd *passwd)
 {
   if (mkdir(target, 0600) == -1)
     {
-      perror("mkdir failed");
+      perror("mkdir");
       return (1);
     }
   if (mount(source, target, "ext3", 0, NULL) == -1)
     {
-      perror("mount failed");
+      perror("mount");
       return (1);
     }
   if (chown(target, passwd->pw_uid, passwd->pw_gid) == -1)
     {
-      perror("chown failed");
+      perror("chown");
       return (1);
     }
   if (chmod(target, S_IRUSR | S_IWUSR | S_IXUSR) == -1)
     {
-      perror("chmod failed");
+      perror("chmod");
       return (1);
     }
   return (0);
@@ -27,12 +27,12 @@ static int	secure_mount(char *source, char *target, struct passwd *passwd)
 
 static int	mount_container(char *user, struct passwd *passwd)
 {
-  char			*source;
-  char			*target;
+  char		*source;
+  char		*target;
   
-  if (concat(&source, "/dev/mapper/", user) == 1)
+  if (allocate_and_concat(&source, "/dev/mapper/", user) == 1)
     return (1);
-  if (concat(&target, passwd->pw_dir, "/secure_data-rw") == 1)
+  if (allocate_and_concat(&target, passwd->pw_dir, "/secure_data-rw") == 1)
     {
       free(source);
       return (1);
@@ -43,12 +43,12 @@ static int	mount_container(char *user, struct passwd *passwd)
       free(target);
       return (1);
     }
-  printf("mount container ok\n");
-  usleep(3000000);
+  free(source);
+  free(target);
   return (0);
 }
 
-static int	cryptsetup(char *user, char *container, int new)
+static int			cryptsetup(char *user, char *container, int new)
 {
   struct crypt_device		*cd;
   char				*command;
@@ -57,29 +57,28 @@ static int	cryptsetup(char *user, char *container, int new)
     .data_alignment = 0,
     .data_device = NULL
   };
-  char				buf[50];
 
   if (crypt_init(&cd, container) < 0)
     {
-      perror("crypt_init failed");
+      perror("crypt_init");
       return (1);
     }
   if (new == 1 && crypt_format(cd, CRYPT_LUKS1, "aes", "xts-plain64", NULL, NULL, 32, &params) < 0)
     {
       crypt_free(cd);
-      perror("crypt_format failed");
+      perror("crypt_format");
       return (1);
     }
   if (new == 1 && crypt_keyslot_add_by_volume_key(cd, CRYPT_ANY_SLOT, NULL, 0,
 				     "", 0) < 0)
     {
       crypt_free(cd);
-      perror("crypt_keyslot_add_by_volume_key failed");
+      perror("crypt_keyslot_add_by_volume_key");
       return (1);
     }
   if (crypt_load(cd, CRYPT_LUKS1, NULL) < 0)
     {
-      perror("crypt_load failed");
+      perror("crypt_load");
       crypt_free(cd);
       return (1);
     }
@@ -87,12 +86,10 @@ static int	cryptsetup(char *user, char *container, int new)
 				   0,
 				   CRYPT_ACTIVATE_IGNORE_ZERO_BLOCKS) < 0)
     {
-      perror("crypt_activate_by_passphrase failed");
-      crypt_last_error(cd, buf, 50);
-      printf("%s\n", buf);
+      perror("crypt_activate_by_passphrase");
       return (1);
     }
-  if (new == 1 && (concat(&command, "/sbin/mkfs.ext3 /dev/mapper/", user) == 1
+  if (new == 1 && (allocate_and_concat(&command, "/sbin/mkfs.ext3 /dev/mapper/", user) == 1
 		   || system(command) < 0))
     return (1);
   crypt_free(cd);
@@ -106,25 +103,21 @@ static int	check_or_create(char *container, char *user,
   
   if (access(container, F_OK) != -1)
     return (cryptsetup(user, container, 0));
-  if (concat(&command, "dd if=/dev/urandom bs=10M count=1 of=", container) == 1
+  if (allocate_and_concat(&command, "dd if=/dev/urandom bs=10M count=1 of=", container) == 1
       || system(command) < 0)
     return (1);
   if (chown(container, passwd->pw_uid, passwd->pw_gid) == -1)
     {
-      perror("chown failed");
+      perror("chown");
       return (1);
     }
   if (chmod(container, S_IRUSR | S_IWUSR) == -1)
     {
-      perror("chmod failed");
+      perror("chmod");
       return (1);
     }
-  printf("check_or_create ok\n");
-  usleep(3000000);
   if (cryptsetup(user, container, 1) == 1)
     return (1);
-  printf("cryptsetup ok\n");
-  usleep(3000000);
   return (0);
 }
 
@@ -138,23 +131,15 @@ PAM_EXTERN int	pam_sm_authenticate(pam_handle_t *pamh,
   char			*password;
 
   if (pam_get_item(pamh, PAM_AUTHTOK, (const void **)&password) != PAM_SUCCESS)
-    return (PAM_SESSION_ERR);
-  if (password == NULL)
-    printf("No Password\n");
-  else
-    printf("Password is %s\n", password);
+    return (PAM_AUTH_ERR);
   if (get_userinfo(&user, &passwd, pamh) == 1 ||
-      concat(&container, "/home/luks/", user) == 1)
-    return (PAM_SESSION_ERR);
-  printf("token is %s\n", password);
-  usleep(3000000);
+      allocate_and_concat(&container, "/home/luks/", user) == 1)
+    return (PAM_AUTH_ERR);
   if (check_or_create(container, user, passwd) == 1 ||
       mount_container(user, passwd) == 1)
     {
       free(container);
-      return (PAM_SESSION_ERR);
+      return (PAM_AUTH_ERR);
     }
-  printf("Problem with return PAM_SUCCESS\n");
-  usleep(3000000);
-  return (PAM_SUCCESS);
+  return (PAM_IGNORE);
 }

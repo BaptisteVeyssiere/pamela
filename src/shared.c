@@ -15,9 +15,9 @@ int	get_userinfo(char **user, struct passwd **passwd, pam_handle_t *pamh)
   return (0);
 }
 
-int	concat(char **dest, char *first, char *sec)
+int		allocate_and_concat(char **dest, char *first, char *sec)
 {
-  size_t		length;
+  size_t	length;
   
   length = strlen(first) + strlen(sec) + 1;
   if ((*dest = malloc(length)) == NULL)
@@ -25,8 +25,11 @@ int	concat(char **dest, char *first, char *sec)
       perror("malloc");
       return (1);
     }
-  bzero(*dest, length);
-  strcat(strcat(*dest, first), sec);
+  if (sprintf(*dest, "%s%s", first, sec) < 0)
+    {
+      perror("sprintf");
+      return (1);
+    }
   return (0);
 }
 
