@@ -27,7 +27,8 @@ MKDIR	= mkdir -p
 SRC	= src/open.c \
 	src/close.c \
 	src/passwd.c \
-	src/shared.c
+	src/shared.c \
+	src/pam_functions.c
 
 SRCDIR	= src
 
@@ -41,7 +42,7 @@ OBJ	= $(SRC:$(SRCDIR)/%.c=$(OBJDIR)/%.o)
 
 CFLAGS	= -Iinclude -fPIC -W -Wextra -Wall -Werror
 
-LDFLAGS	= -lcryptsetup
+LDFLAGS	= -lcryptsetup -lcrypto
 
 $(NAME) : $(OBJ)
 
@@ -65,31 +66,31 @@ check:
 	fi
 
 install: $(NAME)
-	@sudo $(MKDIR) $(SECURITYDIR)
-	@sudo $(CC) $(LDFLAGS) -shared -o $(SECURITYDIR)/$(NAME) $(OBJ)
-	@sudo $(MKDIR) $(LUKSDIR)
-	@sudo chmod 666 $(LUKSDIR)
+	@$(MKDIR) $(SECURITYDIR)
+	@$(CC) $(LDFLAGS) -shared -o $(SECURITYDIR)/$(NAME) $(OBJ)
+	@$(MKDIR) $(LUKSDIR)
+	@chmod 666 $(LUKSDIR)
 	@echo "Linking complete !"
-	@sudo $(RMRULE)
-	@sudo sh -c $(RULE)
-	@sudo $(RMRULE2)
-	@sudo sh -c $(RULE2)
-	@sudo $(RMRULE3)
-	@sudo sh -c $(RULE3)
+	@$(RMRULE)
+	@sh -c $(RULE)
+	@$(RMRULE2)
+	@sh -c $(RULE2)
+	@$(RMRULE3)
+	@sh -c $(RULE3)
 	@echo "Installation complete !"
 
 uninstall: clean
-	@sudo $(RMRULE3)
-	@sudo $(RMRULE)
-	@sudo $(RMRULE2)
-	@sudo $(RM) $(SECURITYDIR)/$(NAME)
-	@sudo $(RM) $(SECURITYDIR)
+	@$(RMRULE3)
+	@$(RMRULE)
+	@$(RMRULE2)
+	@$(RM) $(SECURITYDIR)/$(NAME)
+	@$(RM) $(SECURITYDIR)
 	@if [ -d ${HOME}/secure_data-rw ]; then \
-		sudo umount ${HOME}/secure_data-rw || /bin/true; \
+		umount ${HOME}/secure_data-rw || /bin/true; \
 		$(RM) ${HOME}/secure_data-rw; \
-		sudo cryptsetup luksClose ${USER}; \
+		cryptsetup luksClose ${USER}; \
 	fi
-	@sudo $(RM) $(LUKSDIR)
+	@$(RM) $(LUKSDIR)
 	@echo "Uninstallion complete !"
 
 clean:

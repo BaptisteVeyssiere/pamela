@@ -48,29 +48,33 @@ static int	mount_container(char *user, struct passwd *passwd)
   return (0);
 }
 
-static int			cryptsetup(char *user, char *container, int new)
+static int			cryptsetup(char *user, char *container,
+					   int new, const char *password)
 {
   struct crypt_device		*cd;
   char				*command;
   struct crypt_params_luks1	params = {
-    .hash = "sha1",
+    .hash = "sha256",
     .data_alignment = 0,
     .data_device = NULL
   };
+  unsigned char			*hash;
 
-  if (crypt_init(&cd, container) < 0)
+  if (allocate_and_get_sha256(password, &hash) == 1 ||
+      crypt_init(&cd, container) < 0)
     {
       perror("crypt_init");
       return (1);
     }
-  if (new == 1 && crypt_format(cd, CRYPT_LUKS1, "aes", "xts-plain64", NULL, NULL, 32, &params) < 0)
+  if (new == 1 && crypt_format(cd, CRYPT_LUKS1, "aes",
+			       "xts-plain64", NULL, NULL, 32, &params) < 0)
     {
       crypt_free(cd);
       perror("crypt_format");
       return (1);
     }
   if (new == 1 && crypt_keyslot_add_by_volume_key(cd, CRYPT_ANY_SLOT, NULL, 0,
-				     "", 0) < 0)
+						  (char*)hash, 32) < 0)
     {
       crypt_free(cd);
       perror("crypt_keyslot_add_by_volume_key");
@@ -82,27 +86,27 @@ static int			cryptsetup(char *user, char *container, int new)
       crypt_free(cd);
       return (1);
     }
-  if (crypt_activate_by_passphrase(cd, user, CRYPT_ANY_SLOT, "",
-				   0,
-				   CRYPT_ACTIVATE_IGNORE_ZERO_BLOCKS) < 0)
+  if (crypt_activate_by_passphrase(cd, user, CRYPT_ANY_SLOT, (char*)hash,
+				   32, CRYPT_ACTIVATE_IGNORE_ZERO_BLOCKS) < 0)
     {
       perror("crypt_activate_by_passphrase");
       return (1);
     }
-  if (new == 1 && (allocate_and_concat(&command, "/sbin/mkfs.ext3 /dev/mapper/", user) == 1
-		   || system(command) < 0))
+  if (new == 1 &&
+      (allocate_and_concat(&command, "/sbin/mkfs.ext3 /dev/mapper/", user) == 1
+       || system(command) < 0))
     return (1);
   crypt_free(cd);
   return (0);
 }
 
 static int	check_or_create(char *container, char *user,
-				struct passwd *passwd)
+				struct passwd *passwd, const char *password)
 {
   char	*command;
   
   if (access(container, F_OK) != -1)
-    return (cryptsetup(user, container, 0));
+    return (cryptsetup(user, container, 0, password));
   if (allocate_and_concat(&command, "dd if=/dev/urandom bs=10M count=1 of=", container) == 1
       || system(command) < 0)
     return (1);
@@ -116,7 +120,7 @@ static int	check_or_create(char *container, char *user,
       perror("chmod");
       return (1);
     }
-  if (cryptsetup(user, container, 1) == 1)
+  if (cryptsetup(user, container, 1, password) == 1)
     return (1);
   return (0);
 }
@@ -132,10 +136,12 @@ PAM_EXTERN int	pam_sm_authenticate(pam_handle_t *pamh,
 
   if (pam_get_item(pamh, PAM_AUTHTOK, (const void **)&password) != PAM_SUCCESS)
     return (PAM_AUTH_ERR);
-  if (get_userinfo(&user, &passwd, pamh) == 1 ||
+  if (get_userinfo(&user, &passwd, pamh) == 1 || is_user_invalid(user) == 1 ||
       allocate_and_concat(&container, "/home/luks/", user) == 1)
     return (PAM_AUTH_ERR);
-  if (check_or_create(container, user, passwd) == 1 ||
+  /*if (is_mounted(container) == 1)
+    return (PAM_IGNORE);*/
+  if (check_or_create(container, user, passwd, password) == 1 ||
       mount_container(user, passwd) == 1)
     {
       free(container);
