@@ -1,5 +1,8 @@
 #include "pamela.h"
 
+/*
+** Used to check if username doesn't contain invalid characters
+*/
 int		is_user_invalid(const char *user)
 {
   unsigned int	size = strlen(user);
@@ -18,6 +21,9 @@ int		is_user_invalid(const char *user)
   return (0);
 }
 
+/*
+** Used to get sha256 hash of the string data
+*/
 int		allocate_and_get_sha256(const char *data,
 					unsigned char **digest)
 {
@@ -36,6 +42,9 @@ int		allocate_and_get_sha256(const char *data,
   return (0);
 }
 
+/*
+** Retrieve data about the user
+*/
 int	get_userinfo(char **user, struct passwd **passwd, pam_handle_t *pamh)
 {
   if (pam_get_user(pamh, (const char **)user, NULL) != PAM_SUCCESS)
@@ -51,6 +60,9 @@ int	get_userinfo(char **user, struct passwd **passwd, pam_handle_t *pamh)
   return (0);
 }
 
+/*
+** Concatenate 2 strings and allocate memory to store the result
+*/
 int		allocate_and_concat(char **dest, char *first, char *sec)
 {
   size_t	length;
@@ -69,6 +81,9 @@ int		allocate_and_concat(char **dest, char *first, char *sec)
   return (0);
 }
 
+/*
+** Get PAM item
+*/
 int	get_item(pam_handle_t *pamh, int item, const void **dest)
 {
   if (pam_get_item(pamh, item, dest) != PAM_SUCCESS)
