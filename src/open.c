@@ -25,11 +25,11 @@ static int	secure_mount(char *source, char *target, struct passwd *passwd)
   return (0);
 }
 
-static int	mount_container(char *user, struct passwd *passwd)
+int	mount_container(char *user, struct passwd *passwd)
 {
   char		*source;
   char		*target;
-  
+
   if (allocate_and_concat(&source, "/dev/mapper/", user) == 1)
     return (1);
   if (allocate_and_concat(&target, passwd->pw_dir, "/secure_data-rw") == 1)
@@ -139,8 +139,6 @@ PAM_EXTERN int	pam_sm_authenticate(pam_handle_t *pamh,
   if (get_userinfo(&user, &passwd, pamh) == 1 || is_user_invalid(user) == 1 ||
       allocate_and_concat(&container, "/home/luks/", user) == 1)
     return (PAM_AUTH_ERR);
-  /*if (is_mounted(container) == 1)
-    return (PAM_IGNORE);*/
   if (check_or_create(container, user, passwd, password) == 1 ||
       mount_container(user, passwd) == 1)
     {

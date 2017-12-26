@@ -1,26 +1,5 @@
 #include "pamela.h"
 
-int				is_mounted(const char *container)
-{
-  struct crypt_device		*cd;
-  struct crypt_params_luks1	params = {
-    .hash = "sha256",
-    .data_alignment = 0,
-    .data_device = NULL
-  };
-  
-  if (crypt_init(&cd, container) < 0)
-    return (0);
-  if (crypt_format(cd, CRYPT_LUKS1, "aes",
-		   "xts-plain64", NULL, NULL, 32, &params) < 0)
-    {
-      crypt_free(cd);
-      return (1);
-    }
-  crypt_free(cd);
-  return (0);
-}
-
 int		is_user_invalid(const char *user)
 {
   unsigned int	size = strlen(user);
@@ -92,8 +71,15 @@ int		allocate_and_concat(char **dest, char *first, char *sec)
 
 int	get_item(pam_handle_t *pamh, int item, const void **dest)
 {
-  if (pam_get_item(pamh, item, dest) != PAM_SUCCESS ||
-      *dest == NULL)
-    return (1);
+  if (pam_get_item(pamh, item, dest) != PAM_SUCCESS)
+    {
+      perror("pam_get_item");
+      return (1);
+    }
+  if (*dest == NULL)
+    {
+      fprintf(stderr, "Invalid NULL pointer\n");
+      return (1);
+    }
   return (0);
 }

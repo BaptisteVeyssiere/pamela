@@ -26,9 +26,9 @@ MKDIR	= mkdir -p
 
 SRC	= src/open.c \
 	src/close.c \
-	src/passwd.c \
 	src/shared.c \
-	src/pam_functions.c
+	src/pam_functions.c \
+	src/passwd.c
 
 SRCDIR	= src
 

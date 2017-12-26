@@ -1,8 +1,8 @@
 #include "pamela.h"
 
-static int	umount_container(struct passwd *passwd)
+int	umount_container(struct passwd *passwd)
 {
-  char		*target;
+  char	*target;
 
   if (allocate_and_concat(&target, passwd->pw_dir, "/secure_data-rw") == 1)
     return (1);
@@ -25,7 +25,7 @@ static int	umount_container(struct passwd *passwd)
 static int		cryptunsetup(char *user)
 {
   struct crypt_device	*cd;
-  
+
   if (crypt_init_by_name(&cd, user) < 0)
     {
       perror("crypt_init_by_name");
@@ -33,7 +33,8 @@ static int		cryptunsetup(char *user)
     }
   if (crypt_deactivate(cd, user) < 0)
     {
-      perror("crypt_deactivated");
+      crypt_free(cd);
+      perror("crypt_deactivate");
       return (1);
     }
   crypt_free(cd);
