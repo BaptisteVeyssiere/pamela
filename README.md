@@ -1,0 +1,2 @@
+# pamela
+Basic PAM module
